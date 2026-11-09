@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySessionToken } from "@/lib/auth";
 import DrawTeamsButton from "./DrawTeamsButton";
-import ManageTeams from "./ManageTeams";
+
 
 export default async function AdminPage() {
   const cookieStore = await cookies();
@@ -55,7 +55,7 @@ export default async function AdminPage() {
             </p>
             <DrawTeamsButton />
           </div>
-          <ManageTeams />
+    
 
           <div className="card">
             <h2>Wedstrijden</h2>

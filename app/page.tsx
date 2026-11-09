@@ -94,7 +94,7 @@ export default function Home() {
         <div className="grid">
           <div className="card">
             <span className="badge badge-success">TEAM 1</span>
-            <h3 style={{ marginTop: 14 }}>Team Groen</h3>
+            <h3 style={{ marginTop: 14 }}>Team Wit</h3>
             <p className="muted" style={{ marginTop: 8 }}>
               De spelers worden verdeeld zodra de inschrijvingen
               gesloten zijn.

@@ -22,15 +22,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const playerId = Number(body.playerId);
-    const targetTeam = Number(body.targetTeam);
+    const targetTeam = body.targetTeam === null
+      ? null
+      : Number(body.targetTeam);
 
     if (
       !Number.isInteger(playerId) ||
       playerId <= 0 ||
-      ![1, 2].includes(targetTeam)
+      (targetTeam !== null && ![1, 2].includes(targetTeam))
     ) {
       return NextResponse.json(
-        { error: "Ongeldige speler of team." },
+        { error: "Ongeldige speler of bestemming." },
         { status: 400 }
       );
     }
@@ -56,18 +58,18 @@ export async function POST(request: Request) {
 
     const matchdayId = matchday.rows[0].id;
 
-    const target = await client.query(
+    const registration = await client.query(
       `SELECT id
-       FROM teams
-       WHERE matchday_id = $1 AND team_number = $2`,
-      [matchdayId, targetTeam]
+       FROM registrations
+       WHERE matchday_id = $1 AND player_id = $2`,
+      [matchdayId, playerId]
     );
 
-    if (target.rows.length === 0) {
+    if (registration.rows.length === 0) {
       await client.query("ROLLBACK");
       return NextResponse.json(
-        { error: "De teams zijn nog niet geloot." },
-        { status: 400 }
+        { error: "Deze speler is niet ingeschreven voor deze wedstrijd." },
+        { status: 404 }
       );
     }
 
@@ -81,56 +83,85 @@ export async function POST(request: Request) {
       [matchdayId, playerId]
     );
 
-    if (current.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return NextResponse.json(
-        { error: "Deze speler zit niet in een team." },
-        { status: 404 }
+    if (targetTeam === null) {
+      if (current.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return NextResponse.json(
+          { error: "Deze speler staat al op de reservebank." },
+          { status: 400 }
+        );
+      }
+
+      await client.query(
+        `DELETE FROM team_players WHERE id = $1`,
+        [current.rows[0].id]
       );
-    }
-
-    const currentTeam = await client.query(
-      `SELECT team_number
-       FROM teams
-       WHERE id = $1`,
-      [current.rows[0].team_id]
-    );
-
-    if (currentTeam.rows[0].team_number === targetTeam) {
-      await client.query("ROLLBACK");
-      return NextResponse.json(
-        { error: "Deze speler zit al in dit team." },
-        { status: 400 }
+    } else {
+      const target = await client.query(
+        `SELECT id
+         FROM teams
+         WHERE matchday_id = $1 AND team_number = $2`,
+        [matchdayId, targetTeam]
       );
-    }
 
-    const teamCount = await client.query(
-      `SELECT COUNT(*)::int AS total
-       FROM team_players
-       WHERE team_id = $1`,
-      [target.rows[0].id]
-    );
+      if (target.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return NextResponse.json(
+          { error: "De teams zijn nog niet geloot." },
+          { status: 400 }
+        );
+      }
 
-    if (teamCount.rows[0].total >= 6) {
-      await client.query("ROLLBACK");
-      return NextResponse.json(
-        { error: "Dit team heeft al 6 spelers." },
-        { status: 400 }
+      if (
+        current.rows.length > 0 &&
+        current.rows[0].team_id === target.rows[0].id
+      ) {
+        await client.query("ROLLBACK");
+        return NextResponse.json(
+          { error: "Deze speler zit al in dit team." },
+          { status: 400 }
+        );
+      }
+
+      const teamCount = await client.query(
+        `SELECT COUNT(*)::int AS total
+         FROM team_players
+         WHERE team_id = $1`,
+        [target.rows[0].id]
       );
-    }
 
-    await client.query(
-      `UPDATE team_players
-       SET team_id = $1
-       WHERE id = $2`,
-      [target.rows[0].id, current.rows[0].id]
-    );
+      if (teamCount.rows[0].total >= 6) {
+        await client.query("ROLLBACK");
+        return NextResponse.json(
+          { error: "Dit team heeft al 6 spelers." },
+          { status: 400 }
+        );
+      }
+
+      if (current.rows.length > 0) {
+        await client.query(
+          `UPDATE team_players
+           SET team_id = $1
+           WHERE id = $2`,
+          [target.rows[0].id, current.rows[0].id]
+        );
+      } else {
+        await client.query(
+          `INSERT INTO team_players (team_id, player_id)
+           VALUES ($1, $2)`,
+          [target.rows[0].id, playerId]
+        );
+      }
+    }
 
     await client.query("COMMIT");
 
     return NextResponse.json({
       success: true,
-      message: `De speler is verplaatst naar Team ${targetTeam}.`,
+      message:
+        targetTeam === null
+          ? "De speler staat nu op de reservebank."
+          : `De speler is verplaatst naar Team ${targetTeam}.`,
     });
   } catch (error) {
     await client.query("ROLLBACK");

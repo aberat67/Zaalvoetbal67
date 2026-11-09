@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { verifySessionToken } from "@/lib/auth";
 import CreateMatchForm from "./CreateMatchForm";
 import MatchList from "./MatchList";
+import ResultForm from "./ResultForm";
 
 export default async function AdminMatchesPage() {
   const cookieStore = await cookies();
@@ -34,21 +35,24 @@ export default async function AdminMatchesPage() {
         </h1>
 
         <p className="muted" style={{ marginTop: 10 }}>
-          Maak wedstrijden aan en beheer de wedstrijdgeschiedenis.
+          Maak wedstrijden aan, beheer de geschiedenis en registreer uitslagen.
         </p>
 
         <div className="card" style={{ marginTop: 25 }}>
           <h2>Nieuwe wedstrijd aanmaken</h2>
-
-          <p className="muted" style={{ marginTop: 8 }}>
-            Kies de datum en eventueel de locatie.
-          </p>
-
           <CreateMatchForm />
         </div>
 
         <div className="card" style={{ marginTop: 25 }}>
           <MatchList />
+        </div>
+
+        <div className="card" style={{ marginTop: 25 }}>
+          <h2>Uitslag invoeren</h2>
+          <p className="muted" style={{ marginTop: 8 }}>
+            Selecteer een wedstrijd en vul de score, doelpunten en assists in.
+          </p>
+          <ResultForm />
         </div>
       </section>
     </main>

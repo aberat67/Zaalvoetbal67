@@ -50,19 +50,19 @@ export default function ManageTeams() {
   const team2 = players.filter((player) => player.team === 2);
   const reserves = players.filter((player) => player.team === null);
 
-  function PlayerCard({
-    player,
-  }: {
-    player: Player;
-  }) {
+  function PlayerCard({ player }: { player: Player }) {
     return (
-      <div className="player-row" key={player.id}>
-        <div>
-          <strong>{player.name}</strong>
-          <p className="muted">
-            Inschrijfpositie: {player.position}
-          </p>
-        </div>
+      <div
+        key={player.id}
+        style={{
+          padding: "12px 0",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <strong>{player.name}</strong>
+        <p className="muted" style={{ fontSize: 12, marginTop: 3 }}>
+          Inschrijfpositie: {player.position}
+        </p>
 
         <MovePlayerButton
           playerId={player.id}
@@ -73,13 +73,67 @@ export default function ManageTeams() {
     );
   }
 
-  return (
-    <section className="section">
-      <h2 className="section-title">Teams beheren</h2>
+  function TeamCard({
+    title,
+    list,
+    color,
+  }: {
+    title: string;
+    list: Player[];
+    color: string;
+  }) {
+    return (
+      <div className="card" style={{ padding: 18 }}>
+        <h2 style={{ fontSize: 20, marginBottom: 5, color }}>
+          {title}
+        </h2>
 
-      <p className="muted">
-        Verplaats spelers tussen de teams en de reservebank.
-      </p>
+        <p className="muted" style={{ fontSize: 13 }}>
+          {list.length} van de 6 spelers
+        </p>
+
+        {list.length === 0 ? (
+          <p className="muted" style={{ marginTop: 12 }}>
+            Nog geen spelers.
+          </p>
+        ) : (
+          list.map((player) => (
+            <PlayerCard key={player.id} player={player} />
+          ))
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <section className="section" style={{ marginTop: 25 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+          marginBottom: 16,
+        }}
+      >
+        <div>
+          <h2 style={{ fontSize: 25, fontWeight: 800 }}>
+            Teams beheren
+          </h2>
+          <p className="muted" style={{ fontSize: 13 }}>
+            Spelers verplaatsen en teams aanpassen.
+          </p>
+        </div>
+
+        <button
+          className="btn btn-secondary"
+          onClick={loadPlayers}
+          disabled={loading}
+        >
+          Vernieuwen
+        </button>
+      </div>
 
       {loading && <p>Spelers laden...</p>}
 
@@ -89,69 +143,57 @@ export default function ManageTeams() {
         </p>
       )}
 
-      {!loading && !error && players.length === 0 && (
-        <div className="card">
-          Er zijn nog geen spelers ingeschreven.
-        </div>
-      )}
+      {!loading && !error && (
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 16,
+            }}
+          >
+            <TeamCard
+              title="Team 1"
+              list={team1}
+              color="#75d99a"
+            />
 
-      {!loading && !error && players.length > 0 && (
-        <div className="grid" style={{ marginTop: 24 }}>
-          <div className="card">
-            <h2 className="section-title">Team 1</h2>
-            <p className="muted">
-              {team1.length} van de 6 spelers
-            </p>
-
-            {team1.length === 0 ? (
-              <p className="muted">Nog geen spelers.</p>
-            ) : (
-              team1.map((player) => (
-                <PlayerCard key={player.id} player={player} />
-              ))
-            )}
+            <TeamCard
+              title="Team 2"
+              list={team2}
+              color="#75b8ff"
+            />
           </div>
 
-          <div className="card">
-            <h2 className="section-title">Team 2</h2>
-            <p className="muted">
-              {team2.length} van de 6 spelers
-            </p>
+          <div className="card" style={{ padding: 18, marginTop: 16 }}>
+            <h2 style={{ fontSize: 20, marginBottom: 5 }}>
+              Reservebank
+            </h2>
 
-            {team2.length === 0 ? (
-              <p className="muted">Nog geen spelers.</p>
-            ) : (
-              team2.map((player) => (
-                <PlayerCard key={player.id} player={player} />
-              ))
-            )}
-          </div>
-
-          <div className="card">
-            <h2 className="section-title">Reservebank</h2>
-            <p className="muted">
+            <p className="muted" style={{ fontSize: 13 }}>
               {reserves.length} reserves
             </p>
 
             {reserves.length === 0 ? (
-              <p className="muted">Er zijn geen reserves.</p>
+              <p className="muted" style={{ marginTop: 12 }}>
+                Er zijn geen reserves.
+              </p>
             ) : (
-              reserves.map((player) => (
-                <PlayerCard key={player.id} player={player} />
-              ))
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                {reserves.map((player) => (
+                  <PlayerCard key={player.id} player={player} />
+                ))}
+              </div>
             )}
           </div>
-        </div>
+        </>
       )}
-
-      <button
-        className="btn btn-secondary"
-        onClick={loadPlayers}
-        disabled={loading}
-        style={{ marginTop: 20 }}
-      >
-        Vernieuw spelerslijst
-      </button>
     </section>
   );
 }

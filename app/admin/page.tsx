@@ -2,6 +2,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySessionToken } from "@/lib/auth";
+import DrawTeamsButton from "./DrawTeamsButton";
 
 export default async function AdminPage() {
   const cookieStore = await cookies();
@@ -32,8 +33,7 @@ export default async function AdminPage() {
         </h1>
 
         <p className="muted" style={{ marginTop: 10 }}>
-          Je bent veilig ingelogd. Hier beheren we straks de volledige
-          zaalvoetbalwebsite.
+          Beheer hier de wedstrijden, spelers en teams.
         </p>
 
         <div className="grid" style={{ marginTop: 30 }}>
@@ -48,8 +48,11 @@ export default async function AdminPage() {
           </div>
 
           <div className="card">
-            <h2>Teams</h2>
-            <p className="muted">Teams verdelen en aanpassen.</p>
+            <h2>Teams loten</h2>
+            <p className="muted">
+              Verdeel de eerste 12 ingeschreven spelers willekeurig over twee teams.
+            </p>
+            <DrawTeamsButton />
           </div>
 
           <div className="card">

@@ -2,7 +2,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySessionToken } from "@/lib/auth";
-import DrawTeamsButton from "./DrawTeamsButton";
+
 
 
 export default async function AdminPage() {

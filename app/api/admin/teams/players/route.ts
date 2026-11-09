@@ -49,11 +49,11 @@ export async function GET() {
          ) AS position
        FROM registrations r
        JOIN players p ON p.id = r.player_id
-       LEFT JOIN teams t
-         ON t.matchday_id = r.matchday_id
        LEFT JOIN team_players tp
-         ON tp.team_id = t.id
-         AND tp.player_id = p.id
+         ON tp.player_id = p.id
+       LEFT JOIN teams t
+         ON t.id = tp.team_id
+         AND t.matchday_id = r.matchday_id
        WHERE r.matchday_id = $1
        ORDER BY r.registered_at ASC, r.id ASC`,
       [matchdayId]
@@ -65,7 +65,10 @@ export async function GET() {
         id: player.id,
         name: `${player.first_name} ${player.last_name}`,
         position: Number(player.position),
-        team: player.team_number === null ? null : Number(player.team_number),
+        team:
+          player.team_number === null
+            ? null
+            : Number(player.team_number),
       })),
     });
   } catch (error) {

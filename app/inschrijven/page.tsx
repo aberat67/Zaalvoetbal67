@@ -7,11 +7,13 @@ export default function InschrijvenPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [message, setMessage] = useState("");
+  const [cancellationUrl, setCancellationUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
+    setCancellationUrl("");
     setLoading(true);
 
     try {
@@ -36,6 +38,10 @@ export default function InschrijvenPage() {
           : `Je bent ingeschreven! Je staat op plaats ${data.position} en komt op de reservelijst.`
       );
 
+      setCancellationUrl(
+        `${window.location.origin}${data.cancellationUrl}`
+      );
+
       setFirstName("");
       setLastName("");
     } catch {
@@ -57,17 +63,9 @@ export default function InschrijvenPage() {
       </nav>
 
       <section className="section" style={{ maxWidth: 600, margin: "auto" }}>
-        <span className="badge badge-success">
-          ⚽ INSCHRIJVEN
-        </span>
+        <span className="badge badge-success">⚽ INSCHRIJVEN</span>
 
-        <h1
-          style={{
-            fontSize: 38,
-            fontWeight: 900,
-            marginTop: 18,
-          }}
-        >
+        <h1 style={{ fontSize: 38, fontWeight: 900, marginTop: 18 }}>
           Schrijf je in!
         </h1>
 
@@ -112,12 +110,41 @@ export default function InschrijvenPage() {
           </button>
 
           {message && (
-            <p
-              role="status"
-              style={{ marginTop: 20, fontWeight: 700 }}
-            >
+            <p role="status" style={{ marginTop: 20, fontWeight: 700 }}>
               {message}
             </p>
+          )}
+
+          {cancellationUrl && (
+            <div style={{ marginTop: 24 }}>
+              <p style={{ fontWeight: 700 }}>
+                Bewaar deze persoonlijke uitschrijflink:
+              </p>
+
+              <input
+                type="text"
+                readOnly
+                value={cancellationUrl}
+                onClick={(event) => event.currentTarget.select()}
+                style={{ marginTop: 10 }}
+              />
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ width: "100%", marginTop: 10 }}
+                onClick={() =>
+                  navigator.clipboard.writeText(cancellationUrl)
+                }
+              >
+                Kopieer mijn uitschrijflink
+              </button>
+
+              <p className="muted" style={{ marginTop: 10 }}>
+                Bewaar deze link goed. Iedereen met deze link kan jouw
+                inschrijving annuleren.
+              </p>
+            </div>
           )}
         </form>
       </section>

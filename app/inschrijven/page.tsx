@@ -26,6 +26,7 @@ export default function InschrijvenPage() {
       });
 
       const data = await response.json();
+      console.log("INSCHRIJFRESULTAAT:", data);
 
       if (!response.ok) {
         setMessage(data.error || "Inschrijven is niet gelukt.");

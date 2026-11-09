@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySessionToken } from "@/lib/auth";
 import CreateMatchForm from "./CreateMatchForm";
+import MatchList from "./MatchList";
 
 export default async function AdminMatchesPage() {
   const cookieStore = await cookies();
@@ -33,7 +34,7 @@ export default async function AdminMatchesPage() {
         </h1>
 
         <p className="muted" style={{ marginTop: 10 }}>
-          Maak wedstrijden aan en registreer uitslagen.
+          Maak wedstrijden aan en beheer de wedstrijdgeschiedenis.
         </p>
 
         <div className="card" style={{ marginTop: 25 }}>
@@ -46,12 +47,8 @@ export default async function AdminMatchesPage() {
           <CreateMatchForm />
         </div>
 
-        <div className="card" style={{ marginTop: 18 }}>
-          <h2>Wedstrijdresultaten</h2>
-
-          <p className="muted" style={{ marginTop: 8 }}>
-            Hier komen straks de uitslagen, doelpuntenmakers en assists.
-          </p>
+        <div className="card" style={{ marginTop: 25 }}>
+          <MatchList />
         </div>
       </section>
     </main>

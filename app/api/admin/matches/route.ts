@@ -31,9 +31,17 @@ export async function POST(request: Request) {
     const result = await db.query(
       `INSERT INTO matchdays (match_date, location, registration_open)
        VALUES ($1, $2, TRUE)
+       ON CONFLICT (match_date) DO NOTHING
        RETURNING id, match_date, location`,
       [matchDate, location || null]
     );
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { error: "Er bestaat al een wedstrijd op deze datum." },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

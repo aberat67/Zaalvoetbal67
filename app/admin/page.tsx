@@ -68,10 +68,24 @@ export default async function AdminPage() {
 </a>
     
 
-          <div className="card">
-            <h2>Wedstrijden</h2>
-            <p className="muted">Wedstrijden en uitslagen beheren.</p>
-          </div>
+          <a
+  href="/admin/matches"
+  className="card"
+  style={{
+    display: "block",
+    textDecoration: "none",
+    color: "inherit",
+    cursor: "pointer",
+  }}
+>
+  <h2>⚽ Wedstrijden beheren</h2>
+  <p className="muted" style={{ marginTop: 8 }}>
+    Wedstrijden aanmaken, uitslagen invoeren en doelpunten registreren.
+  </p>
+  <p style={{ marginTop: 14, color: "#75d99a" }}>
+    Open wedstrijdbeheer →
+  </p>
+</a>
 
           <div className="card">
             <h2>Statistieken</h2>

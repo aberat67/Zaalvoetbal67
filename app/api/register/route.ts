@@ -1,5 +1,6 @@
 
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 
 export async function POST(request: Request) {
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     }
 
     const matchdayId = matchday.rows[0].id;
+    const cancellationToken = randomBytes(32).toString("hex");
 
     const result = await db.query(
       `INSERT INTO players (name, first_name, last_name)
@@ -49,9 +51,10 @@ export async function POST(request: Request) {
 
     try {
       await db.query(
-        `INSERT INTO registrations (matchday_id, player_id)
-         VALUES ($1, $2)`,
-        [matchdayId, playerId]
+        `INSERT INTO registrations
+         (matchday_id, player_id, cancellation_token)
+         VALUES ($1, $2, $3)`,
+        [matchdayId, playerId, cancellationToken]
       );
     } catch (error) {
       await db.query("DELETE FROM players WHERE id = $1", [playerId]);
@@ -62,10 +65,24 @@ export async function POST(request: Request) {
       `SELECT COUNT(*)::int AS position
        FROM registrations
        WHERE matchday_id = $1
-         AND registered_at <= (
-           SELECT registered_at
-           FROM registrations
-           WHERE matchday_id = $1 AND player_id = $2
+         AND (
+           registered_at < (
+             SELECT registered_at
+             FROM registrations
+             WHERE matchday_id = $1 AND player_id = $2
+           )
+           OR (
+             registered_at = (
+               SELECT registered_at
+               FROM registrations
+               WHERE matchday_id = $1 AND player_id = $2
+             )
+             AND id <= (
+               SELECT id
+               FROM registrations
+               WHERE matchday_id = $1 AND player_id = $2
+             )
+           )
          )`,
       [matchdayId, playerId]
     );
@@ -74,6 +91,7 @@ export async function POST(request: Request) {
       success: true,
       position: position.rows[0].position,
       status: position.rows[0].position <= 12 ? "basisplaats" : "reserve",
+      cancellationUrl: `/uitschrijven/${cancellationToken}`,
     });
   } catch (error) {
     console.error("Inschrijffout:", error);

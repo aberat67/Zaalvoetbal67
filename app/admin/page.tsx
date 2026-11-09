@@ -48,13 +48,24 @@ export default async function AdminPage() {
             <p className="muted">Inschrijvingen bekijken en beheren.</p>
           </div>
 
-          <div className="card">
-            <h2>Teams loten</h2>
-            <p className="muted">
-              Verdeel de eerste 12 ingeschreven spelers willekeurig over twee teams.
-            </p>
-            <DrawTeamsButton />
-          </div>
+          <a
+  href="/admin/teams"
+  className="card"
+  style={{
+    display: "block",
+    textDecoration: "none",
+    color: "inherit",
+    cursor: "pointer",
+  }}
+>
+  <h2>⚽ Teams beheren</h2>
+  <p className="muted" style={{ marginTop: 8 }}>
+    Teams loten, spelers verplaatsen en de reservebank beheren.
+  </p>
+  <p style={{ marginTop: 14, color: "#75d99a" }}>
+    Open teambeheer →
+  </p>
+</a>
     
 
           <div className="card">

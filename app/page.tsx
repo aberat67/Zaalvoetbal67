@@ -1,5 +1,51 @@
 
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Match = {
+  id: number;
+  date: string;
+  location: string | null;
+  registrationOpen: boolean;
+  registeredCount: number;
+  starterCount: number;
+  reserveCount: number;
+  availablePlaces: number;
+};
+
 export default function Home() {
+  const [match, setMatch] = useState<Match | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/next-match")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Wedstrijd ophalen mislukt");
+        }
+        return response.json();
+      })
+      .then((data) => setMatch(data.match))
+      .catch((error) => {
+        console.error(error);
+        setMatch(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const formattedDate = match?.date
+    ? new Date(`${match.date.slice(0, 10)}T12:00:00`).toLocaleDateString(
+        "nl-BE",
+        {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }
+      )
+    : "";
+
   return (
     <main>
       <nav className="container navbar">
@@ -11,11 +57,9 @@ export default function Home() {
           <a href="/inschrijven" className="btn btn-secondary">
             Inschrijven
           </a>
-
           <a href="/statistieken" className="btn btn-secondary">
             Statistieken
           </a>
-
           <a href="/teams" className="btn btn-secondary">
             Teams
           </a>
@@ -49,42 +93,70 @@ export default function Home() {
         <h2 className="section-title">Volgende speeldag</h2>
 
         <div className="card">
-          <span className="badge badge-success">BINNENKORT</span>
+          {loading ? (
+            <p className="muted">Wedstrijdgegevens laden...</p>
+          ) : match ? (
+            <>
+              <span className="badge badge-success">
+                {match.registrationOpen
+                  ? "INSCHRIJVINGEN OPEN"
+                  : "INSCHRIJVINGEN GESLOTEN"}
+              </span>
 
-          <h2 style={{ marginTop: 16, fontSize: 28 }}>
-            De volgende wedstrijd
-          </h2>
+              <h2 style={{ marginTop: 16, fontSize: 28 }}>
+                {formattedDate}
+              </h2>
 
-          <p className="muted" style={{ marginTop: 8 }}>
-            Bekijk de volgende speeldag en schrijf je in.
-          </p>
+              <p className="muted" style={{ marginTop: 8 }}>
+                {match.location || "Locatie nog niet bekendgemaakt"}
+              </p>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 24,
-              flexWrap: "wrap",
-              marginTop: 24,
-            }}
-          >
-            <div>
-              <p className="muted">Beschikbare plaatsen</p>
-              <h2 className="accent">12 spelers</h2>
-            </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 24,
+                  flexWrap: "wrap",
+                  marginTop: 24,
+                }}
+              >
+                <div>
+                  <p className="muted">Basisplaatsen bezet</p>
+                  <h2 className="accent">
+                    {match.starterCount} / 12
+                  </h2>
+                </div>
 
-            <div>
-              <p className="muted">Reservespelers</p>
-              <h2>Onbeperkt</h2>
-            </div>
-          </div>
+                <div>
+                  <p className="muted">Reservespelers</p>
+                  <h2>{match.reserveCount}</h2>
+                </div>
 
-          <a
-            href="/inschrijven"
-            className="btn btn-primary"
-            style={{ marginTop: 20 }}
-          >
-            Inschrijven →
-          </a>
+                <div>
+                  <p className="muted">Vrije plaatsen</p>
+                  <h2>{match.availablePlaces}</h2>
+                </div>
+              </div>
+
+              <a
+                href="/inschrijven"
+                className="btn btn-primary"
+                style={{ marginTop: 20 }}
+              >
+                {match.registrationOpen
+                  ? "Inschrijven →"
+                  : "Bekijk inschrijvingen →"}
+              </a>
+            </>
+          ) : (
+            <>
+              <h2 style={{ marginTop: 8, fontSize: 24 }}>
+                Nog geen wedstrijd gepland
+              </h2>
+              <p className="muted" style={{ marginTop: 8 }}>
+                De volgende speeldag wordt binnenkort bekendgemaakt.
+              </p>
+            </>
+          )}
         </div>
       </section>
 

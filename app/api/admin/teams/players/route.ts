@@ -1,6 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
 import { verifySessionToken } from "@/lib/auth";
 
@@ -84,6 +85,69 @@ export async function GET() {
 
     return NextResponse.json(
       { error: "De spelers konden niet worden opgehaald." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json(
+      { error: "Je moet ingelogd zijn als beheerder." },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const firstName = String(body.firstName || "").trim();
+    const lastName = String(body.lastName || "").trim();
+
+    if (
+      !firstName ||
+      !lastName ||
+      firstName.length > 50 ||
+      lastName.length > 50
+    ) {
+      return NextResponse.json(
+        { error: "Vul een geldige voornaam en achternaam in." },
+        { status: 400 }
+      );
+    }
+
+    const matchday = await getNextMatchday();
+
+    if (matchday.rows.length === 0) {
+      return NextResponse.json(
+        { error: "Er is geen komende speeldag gevonden." },
+        { status: 404 }
+      );
+    }
+
+    const matchdayId = matchday.rows[0].id;
+    const fullName = `${firstName} ${lastName}`;
+    const cancellationToken = randomBytes(32).toString("hex");
+
+    const player = await db.query(
+      `INSERT INTO players (name, first_name, last_name)
+       VALUES ($1, $2, $3)
+       RETURNING id`,
+      [fullName, firstName, lastName]
+    );
+
+    await db.query(
+      `INSERT INTO registrations
+       (matchday_id, player_id, cancellation_token)
+       VALUES ($1, $2, $3)`,
+      [matchdayId, player.rows[0].id, cancellationToken]
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Fout bij toevoegen speler:", error);
+
+    return NextResponse.json(
+      { error: "De speler kon niet worden toegevoegd." },
       { status: 500 }
     );
   }

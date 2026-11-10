@@ -7,9 +7,19 @@ export default function Home() {
           ZAAL<span>VOETBAL.</span>
         </a>
 
-        <a href="#inschrijven" className="btn btn-secondary">
-          Inschrijven
-        </a>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <a href="/inschrijven" className="btn btn-secondary">
+            Inschrijven
+          </a>
+
+          <a href="/statistieken" className="btn btn-secondary">
+            Statistieken
+          </a>
+
+          <a href="/teams" className="btn btn-secondary">
+            Teams
+          </a>
+        </div>
       </nav>
 
       <section className="hero">
@@ -29,8 +39,8 @@ export default function Home() {
             Schrijf je in, ontdek de teams en volg alle statistieken.
           </p>
 
-          <a href="#inschrijven" className="btn btn-primary">
-            Bekijk inschrijvingen →
+          <a href="/inschrijven" className="btn btn-primary">
+            Schrijf je in →
           </a>
         </div>
       </section>
@@ -46,7 +56,7 @@ export default function Home() {
           </h2>
 
           <p className="muted" style={{ marginTop: 8 }}>
-            De datum en locatie worden binnenkort bekendgemaakt.
+            Bekijk de volgende speeldag en schrijf je in.
           </p>
 
           <div
@@ -67,6 +77,14 @@ export default function Home() {
               <h2>Onbeperkt</h2>
             </div>
           </div>
+
+          <a
+            href="/inschrijven"
+            className="btn btn-primary"
+            style={{ marginTop: 20 }}
+          >
+            Inschrijven →
+          </a>
         </div>
       </section>
 
@@ -77,14 +95,18 @@ export default function Home() {
           <h3 style={{ fontSize: 22 }}>Speel mee!</h3>
 
           <p className="muted" style={{ marginTop: 10 }}>
-            Binnenkort kan je je hier inschrijven voor de volgende
-            zaalvoetbalwedstrijd. De eerste 12 spelers krijgen een
-            basisplaats. Daarna kom je op de reservelijst.
+            Schrijf je in voor de volgende zaalvoetbalwedstrijd.
+            De eerste 12 spelers krijgen een basisplaats.
+            Daarna kom je op de reservelijst.
           </p>
 
-          <p className="accent" style={{ marginTop: 20, fontWeight: 700 }}>
-            Inschrijvingen worden binnenkort geopend.
-          </p>
+          <a
+            href="/inschrijven"
+            className="btn btn-primary"
+            style={{ marginTop: 20 }}
+          >
+            Naar inschrijvingen →
+          </a>
         </div>
       </section>
 
@@ -96,8 +118,7 @@ export default function Home() {
             <span className="badge badge-success">TEAM 1</span>
             <h3 style={{ marginTop: 14 }}>Team Wit</h3>
             <p className="muted" style={{ marginTop: 8 }}>
-              De spelers worden verdeeld zodra de inschrijvingen
-              gesloten zijn.
+              Bekijk de spelers van Team 1.
             </p>
           </div>
 
@@ -105,29 +126,39 @@ export default function Home() {
             <span className="badge badge-reserve">TEAM 2</span>
             <h3 style={{ marginTop: 14 }}>Team Zwart</h3>
             <p className="muted" style={{ marginTop: 8 }}>
-              De teams worden willekeurig samengesteld.
+              Bekijk de spelers van Team 2.
             </p>
           </div>
         </div>
+
+        <a
+          href="/teams"
+          className="btn btn-secondary"
+          style={{ marginTop: 20 }}
+        >
+          Bekijk alle teams →
+        </a>
       </section>
 
       <section id="statistieken" className="container section">
         <h2 className="section-title">Statistieken</h2>
 
         <div className="grid">
-          <div className="card">
+          <a href="/statistieken" className="card">
             <h3 className="accent">Topscorers</h3>
             <p className="muted" style={{ marginTop: 8 }}>
-              Wie scoort dit seizoen de meeste doelpunten?
+              Bekijk wie de meeste doelpunten heeft gemaakt.
             </p>
-          </div>
+            <p style={{ marginTop: 16 }}>Bekijk klassement →</p>
+          </a>
 
-          <div className="card">
+          <a href="/statistieken" className="card">
             <h3 className="accent">Meeste overwinningen</h3>
             <p className="muted" style={{ marginTop: 8 }}>
               Ontdek wie bovenaan staat in het klassement.
             </p>
-          </div>
+            <p style={{ marginTop: 16 }}>Bekijk klassement →</p>
+          </a>
         </div>
       </section>
 

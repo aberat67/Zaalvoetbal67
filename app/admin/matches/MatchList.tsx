@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -16,6 +17,7 @@ export default function MatchList() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   const loadMatches = useCallback(async () => {
     try {
@@ -46,6 +48,56 @@ export default function MatchList() {
   useEffect(() => {
     loadMatches();
   }, [loadMatches]);
+
+  async function toggleRegistration(match: Match) {
+    const newStatus = !match.registration_open;
+
+    try {
+      setUpdatingId(match.id);
+      setError("");
+
+      const response = await fetch(
+        "/api/admin/matches/registration",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            matchdayId: match.id,
+            registrationOpen: newStatus,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Inschrijvingen aanpassen mislukt."
+        );
+      }
+
+      setMatches((currentMatches) =>
+        currentMatches.map((item) =>
+          item.id === match.id
+            ? {
+                ...item,
+                registration_open: data.registrationOpen,
+              }
+            : item
+        )
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Inschrijvingen aanpassen mislukt."
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
   function formatDate(date: string) {
     const [year, month, day] = date.split("-");
@@ -84,11 +136,12 @@ export default function MatchList() {
       )}
 
       {!loading && !error && matches.length === 0 && (
-        <p className="muted">Er zijn nog geen wedstrijden aangemaakt.</p>
+        <p className="muted">
+          Er zijn nog geen wedstrijden aangemaakt.
+        </p>
       )}
 
       {!loading &&
-        !error &&
         matches.map((match) => (
           <div
             className="player-row"
@@ -120,6 +173,24 @@ export default function MatchList() {
                   ? "Inschrijving open"
                   : "Inschrijving gesloten"}
               </span>
+
+              <div style={{ marginTop: 12 }}>
+                <button
+                  className={
+                    match.registration_open
+                      ? "btn btn-secondary"
+                      : "btn btn-primary"
+                  }
+                  onClick={() => toggleRegistration(match)}
+                  disabled={updatingId !== null}
+                >
+                  {updatingId === match.id
+                    ? "Bezig..."
+                    : match.registration_open
+                      ? "Inschrijving sluiten"
+                      : "Inschrijving openen"}
+                </button>
+              </div>
             </div>
 
             <div style={{ textAlign: "right" }}>

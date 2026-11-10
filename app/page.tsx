@@ -63,6 +63,9 @@ export default function Home() {
           <a href="/teams" className="btn btn-secondary">
             Teams
           </a>
+          <a href="/admin" className="btn btn-secondary">
+            Admin
+          </a>
         </div>
       </nav>
 

@@ -7,11 +7,25 @@ import { verifySessionToken } from "@/lib/auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+async function isAdmin() {
   const cookieStore = await cookies();
   const token = cookieStore.get("zaalvoetbal_admin")?.value;
 
-  if (!token || !verifySessionToken(token)) {
+  return Boolean(token && verifySessionToken(token));
+}
+
+async function getNextMatchday() {
+  return db.query(
+    `SELECT id, match_date
+     FROM matchdays
+     WHERE match_date >= CURRENT_DATE
+     ORDER BY match_date ASC
+     LIMIT 1`
+  );
+}
+
+export async function GET() {
+  if (!(await isAdmin())) {
     return NextResponse.json(
       { error: "Je moet ingelogd zijn als beheerder." },
       { status: 401 }
@@ -19,13 +33,7 @@ export async function GET() {
   }
 
   try {
-    const matchday = await db.query(
-      `SELECT id, match_date
-       FROM matchdays
-       WHERE match_date >= CURRENT_DATE
-       ORDER BY match_date ASC
-       LIMIT 1`
-    );
+    const matchday = await getNextMatchday();
 
     if (matchday.rows.length === 0) {
       return NextResponse.json({
@@ -76,6 +84,126 @@ export async function GET() {
 
     return NextResponse.json(
       { error: "De spelers konden niet worden opgehaald." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json(
+      { error: "Je moet ingelogd zijn als beheerder." },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const playerId = Number(body.playerId);
+    const firstName = String(body.firstName || "").trim();
+    const lastName = String(body.lastName || "").trim();
+
+    if (
+      !Number.isInteger(playerId) ||
+      playerId < 1 ||
+      !firstName ||
+      !lastName ||
+      firstName.length > 50 ||
+      lastName.length > 50
+    ) {
+      return NextResponse.json(
+        { error: "Vul een geldige voornaam en achternaam in." },
+        { status: 400 }
+      );
+    }
+
+    const result = await db.query(
+      `UPDATE players
+       SET first_name = $1,
+           last_name = $2,
+           name = $3
+       WHERE id = $4
+       RETURNING id`,
+      [firstName, lastName, `${firstName} ${lastName}`, playerId]
+    );
+
+    if (result.rowCount === 0) {
+      return NextResponse.json(
+        { error: "Speler niet gevonden." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Fout bij aanpassen speler:", error);
+
+    return NextResponse.json(
+      { error: "De speler kon niet worden aangepast." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json(
+      { error: "Je moet ingelogd zijn als beheerder." },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const playerId = Number(body.playerId);
+
+    if (!Number.isInteger(playerId) || playerId < 1) {
+      return NextResponse.json(
+        { error: "Ongeldig spelersnummer." },
+        { status: 400 }
+      );
+    }
+
+    const matchday = await getNextMatchday();
+
+    if (matchday.rows.length === 0) {
+      return NextResponse.json(
+        { error: "Er is geen komende speeldag gevonden." },
+        { status: 404 }
+      );
+    }
+
+    const matchdayId = matchday.rows[0].id;
+
+    await db.query(
+      `DELETE FROM team_players
+       WHERE player_id = $1
+       AND team_id IN (
+         SELECT id FROM teams WHERE matchday_id = $2
+       )`,
+      [playerId, matchdayId]
+    );
+
+    const result = await db.query(
+      `DELETE FROM registrations
+       WHERE player_id = $1 AND matchday_id = $2
+       RETURNING id`,
+      [playerId, matchdayId]
+    );
+
+    if (result.rowCount === 0) {
+      return NextResponse.json(
+        { error: "Deze speler staat niet ingeschreven voor de komende speeldag." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Fout bij verwijderen speler:", error);
+
+    return NextResponse.json(
+      { error: "De speler kon niet worden verwijderd." },
       { status: 500 }
     );
   }

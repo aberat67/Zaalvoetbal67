@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
@@ -36,12 +37,24 @@ export async function GET(
          t.team_number,
          p.id AS player_id,
          p.first_name,
-         p.last_name
+         p.last_name,
+         COALESCE(s.goals, 0) AS goals,
+         COALESCE(s.assists, 0) AS assists
        FROM teams t
        JOIN team_players tp ON tp.team_id = t.id
        JOIN players p ON p.id = tp.player_id
+       LEFT JOIN player_match_stats s
+         ON s.matchday_id = t.matchday_id
+        AND s.player_id = p.id
        WHERE t.matchday_id = $1
        ORDER BY t.team_number, p.first_name, p.last_name`,
+      [matchdayId]
+    );
+
+    const matchResult = await db.query(
+      `SELECT team1_score, team2_score
+       FROM match_results
+       WHERE matchday_id = $1`,
       [matchdayId]
     );
 
@@ -50,7 +63,15 @@ export async function GET(
         id: Number(player.player_id),
         name: `${player.first_name} ${player.last_name}`,
         team: Number(player.team_number),
+        goals: Number(player.goals),
+        assists: Number(player.assists),
       })),
+      result: matchResult.rows[0]
+        ? {
+            team1Score: Number(matchResult.rows[0].team1_score),
+            team2Score: Number(matchResult.rows[0].team2_score),
+          }
+        : null,
     });
   } catch (error) {
     console.error("Spelers ophalen mislukt:", error);

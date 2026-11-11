@@ -1,9 +1,11 @@
+
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifySessionToken } from "@/lib/auth";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
@@ -16,10 +18,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const client = await db.connect();
+  let client;
 
   try {
     const body = await request.json();
+
     const matchdayId = Number(body.matchdayId);
     const team1Score = Number(body.team1Score);
     const team2Score = Number(body.team2Score);
@@ -32,14 +35,18 @@ export async function POST(request: Request) {
       !Number.isInteger(team2Score) ||
       team1Score < 0 ||
       team2Score < 0 ||
-      !Array.isArray(stats)
+      team1Score > 50 ||
+      team2Score > 50 ||
+      !Array.isArray(stats) ||
+      stats.length !== 12
     ) {
       return NextResponse.json(
-        { error: "Controleer de ingevulde uitslag." },
+        { error: "Controleer de uitslag en vul alle 12 spelers in." },
         { status: 400 }
       );
     }
 
+    client = await db.connect();
     await client.query("BEGIN");
 
     const matchday = await client.query(
@@ -51,19 +58,13 @@ export async function POST(request: Request) {
     );
 
     if (matchday.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return NextResponse.json(
-        { error: "Deze wedstrijd bestaat niet." },
-        { status: 404 }
-      );
+      throw new Error("Deze wedstrijd bestaat niet.");
     }
 
     const teams = await client.query(
-      `SELECT
-         t.team_number,
-         tp.player_id
+      `SELECT t.team_number, tp.player_id
        FROM teams t
-       LEFT JOIN team_players tp ON tp.team_id = t.id
+       JOIN team_players tp ON tp.team_id = t.id
        WHERE t.matchday_id = $1
        ORDER BY t.team_number`,
       [matchdayId]
@@ -78,16 +79,12 @@ export async function POST(request: Request) {
       .map((row) => Number(row.player_id));
 
     if (
+      teams.rows.length !== 12 ||
       team1Players.length !== 6 ||
       team2Players.length !== 6 ||
-      team1Players.includes(0) ||
-      team2Players.includes(0)
+      new Set(teams.rows.map((row) => Number(row.player_id))).size !== 12
     ) {
-      await client.query("ROLLBACK");
-      return NextResponse.json(
-        { error: "Beide teams moeten precies 6 spelers hebben." },
-        { status: 400 }
-      );
+      throw new Error("Beide teams moeten elk 6 verschillende spelers hebben.");
     }
 
     let goals1 = 0;
@@ -106,55 +103,62 @@ export async function POST(request: Request) {
 
       if (
         !Number.isInteger(playerId) ||
+        playerId <= 0 ||
+        !Number.isInteger(teamNumber) ||
+        ![1, 2].includes(teamNumber) ||
         !Number.isInteger(goals) ||
         !Number.isInteger(assists) ||
-        ![1, 2].includes(teamNumber) ||
         goals < 0 ||
         assists < 0 ||
         goals > 50 ||
         assists > 50 ||
         playerStats.has(playerId)
       ) {
-        throw new Error("Ongeldige spelersstatistieken.");
+        throw new Error("Ongeldige of dubbele spelersstatistieken.");
       }
 
-      const validPlayers = teamNumber === 1
-        ? team1Players
-        : team2Players;
+      const validPlayers =
+        teamNumber === 1 ? team1Players : team2Players;
 
       if (!validPlayers.includes(playerId)) {
         throw new Error("Een speler hoort niet bij het gekozen team.");
       }
 
-      playerStats.set(playerId, { team: teamNumber, goals, assists });
+      playerStats.set(playerId, {
+        team: teamNumber,
+        goals,
+        assists,
+      });
 
       if (teamNumber === 1) goals1 += goals;
       if (teamNumber === 2) goals2 += goals;
     }
 
-    if (goals1 !== team1Score || goals2 !== team2Score) {
-      await client.query("ROLLBACK");
-      return NextResponse.json(
-        {
-          error:
-            "Het aantal geregistreerde doelpunten moet overeenkomen met de eindstand.",
-        },
-        { status: 400 }
-      );
+    const allPlayers = [...team1Players, ...team2Players];
+
+    if (
+      playerStats.size !== 12 ||
+      allPlayers.some((playerId) => !playerStats.has(playerId))
+    ) {
+      throw new Error("Alle 12 spelers moeten precies één keer ingevuld zijn.");
     }
 
-    const playedAt = new Date();
+    if (goals1 !== team1Score || goals2 !== team2Score) {
+      throw new Error(
+        "Het aantal geregistreerde doelpunten moet overeenkomen met de eindstand."
+      );
+    }
 
     await client.query(
       `INSERT INTO match_results
        (matchday_id, team1_score, team2_score, played_at)
-       VALUES ($1, $2, $3, $4)
+       VALUES ($1, $2, $3, NOW())
        ON CONFLICT (matchday_id)
        DO UPDATE SET
          team1_score = EXCLUDED.team1_score,
          team2_score = EXCLUDED.team2_score,
-         played_at = EXCLUDED.played_at`,
-      [matchdayId, team1Score, team2Score, playedAt]
+         played_at = NOW()`,
+      [matchdayId, team1Score, team2Score]
     );
 
     await client.query(
@@ -164,6 +168,15 @@ export async function POST(request: Request) {
     );
 
     for (const [playerId, stat] of playerStats) {
+      const result =
+        team1Score === team2Score
+          ? "draw"
+          : (team1Score > team2Score
+              ? stat.team === 1
+              : stat.team === 2)
+            ? "win"
+            : "loss";
+
       await client.query(
         `INSERT INTO player_match_stats
          (matchday_id, player_id, goals, assists, team_number, result)
@@ -174,13 +187,7 @@ export async function POST(request: Request) {
           stat.goals,
           stat.assists,
           stat.team,
-          team1Score === team2Score
-            ? "draw"
-            : (team1Score > team2Score
-                ? stat.team === 1
-                : stat.team === 2)
-              ? "win"
-              : "loss",
+          result,
         ]
       );
     }
@@ -189,10 +196,17 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "De uitslag en spelersstatistieken zijn opgeslagen.",
+      message: "De uitslag en alle 12 spelersstatistieken zijn opgeslagen.",
     });
   } catch (error) {
-    await client.query("ROLLBACK");
+    if (client) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("Terugdraaien mislukt:", rollbackError);
+      }
+    }
+
     console.error("Uitslag opslaan mislukt:", error);
 
     return NextResponse.json(
@@ -205,6 +219,6 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   } finally {
-    client.release();
+    client?.release();
   }
 }

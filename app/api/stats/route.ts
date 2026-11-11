@@ -12,12 +12,24 @@ export async function GET() {
         p.id,
         p.first_name,
         p.last_name,
+
         COUNT(s.id)::int AS matches_played,
+
         COALESCE(SUM(s.goals), 0)::int AS goals,
         COALESCE(SUM(s.assists), 0)::int AS assists,
-        COUNT(s.id) FILTER (WHERE s.result = 'win')::int AS wins,
-        COUNT(s.id) FILTER (WHERE s.result = 'draw')::int AS draws,
-        COUNT(s.id) FILTER (WHERE s.result = 'loss')::int AS losses,
+
+        COUNT(s.id) FILTER (
+          WHERE s.result = 'win'
+        )::int AS wins,
+
+        COUNT(s.id) FILTER (
+          WHERE s.result = 'draw'
+        )::int AS draws,
+
+        COUNT(s.id) FILTER (
+          WHERE s.result = 'loss'
+        )::int AS losses,
+
         CASE
           WHEN COUNT(s.id) = 0 THEN 0
           ELSE ROUND(
@@ -25,10 +37,27 @@ export async function GET() {
             / COUNT(s.id)
           )::int
         END AS win_percentage
+
       FROM players p
-      LEFT JOIN player_match_stats s ON s.player_id = p.id
-      GROUP BY p.id, p.first_name, p.last_name
-      ORDER BY goals DESC, assists DESC, wins DESC, p.first_name ASC
+
+      LEFT JOIN player_match_stats s
+        ON s.player_id = p.id
+        AND EXISTS (
+          SELECT 1
+          FROM match_results mr
+          WHERE mr.matchday_id = s.matchday_id
+        )
+
+      GROUP BY
+        p.id,
+        p.first_name,
+        p.last_name
+
+      ORDER BY
+        goals DESC,
+        assists DESC,
+        wins DESC,
+        p.first_name ASC
     `);
 
     return NextResponse.json({
@@ -46,6 +75,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Statistieken ophalen mislukt:", error);
+
     return NextResponse.json(
       { error: "Statistieken konden niet worden opgehaald." },
       { status: 500 }

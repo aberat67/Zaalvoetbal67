@@ -7,7 +7,7 @@ import { verifySessionToken } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(request: Request) {
   const cookieStore = await cookies();
   const token = cookieStore.get("zaalvoetbal_admin")?.value;
 
@@ -15,6 +15,16 @@ export async function POST() {
     return NextResponse.json(
       { error: "Je moet ingelogd zijn als beheerder." },
       { status: 401 }
+    );
+  }
+
+  const body = await request.json().catch(() => null);
+  const numberOfPlayers = body?.numberOfPlayers;
+
+  if (![12, 13, 14].includes(numberOfPlayers)) {
+    return NextResponse.json(
+      { error: "Kies 12, 13 of 14 spelers." },
+      { status: 400 }
     );
   }
 
@@ -26,6 +36,7 @@ export async function POST() {
     const matchday = await client.query(
       `SELECT id
        FROM matchdays
+       WHERE match_date >= CURRENT_DATE
        ORDER BY match_date ASC
        LIMIT 1
        FOR UPDATE`
@@ -34,7 +45,7 @@ export async function POST() {
     if (matchday.rows.length === 0) {
       await client.query("ROLLBACK");
       return NextResponse.json(
-        { error: "Er is nog geen wedstrijd aangemaakt." },
+        { error: "Er is geen toekomstige wedstrijd aangemaakt." },
         { status: 400 }
       );
     }
@@ -46,19 +57,20 @@ export async function POST() {
        FROM registrations
        WHERE matchday_id = $1
        ORDER BY registered_at ASC, id ASC
-       LIMIT 12`,
-      [matchdayId]
+       LIMIT $2`,
+      [matchdayId, numberOfPlayers]
     );
 
-    if (result.rows.length !== 12) {
+    if (result.rows.length < numberOfPlayers) {
       await client.query("ROLLBACK");
       return NextResponse.json(
-        { error: "Er moeten precies 12 spelers ingeschreven zijn om teams te loten." },
+        {
+          error: `Er zijn maar ${result.rows.length} spelers ingeschreven. Je hebt er ${numberOfPlayers} nodig.`,
+        },
         { status: 400 }
       );
     }
 
-    // Schud de 12 spelers willekeurig door elkaar.
     const players = [...result.rows];
 
     for (let i = players.length - 1; i > 0; i--) {
@@ -66,13 +78,14 @@ export async function POST() {
       [players[i], players[j]] = [players[j], players[i]];
     }
 
-    // Verwijder de vorige teamindeling.
     await client.query(
       "DELETE FROM teams WHERE matchday_id = $1",
       [matchdayId]
     );
 
-    // Maak twee nieuwe teams.
+    const team1Count = Math.ceil(numberOfPlayers / 2);
+    const team2Count = Math.floor(numberOfPlayers / 2);
+
     const team1 = await client.query(
       `INSERT INTO teams (matchday_id, team_number)
        VALUES ($1, 1)
@@ -87,10 +100,10 @@ export async function POST() {
       [matchdayId]
     );
 
-    // Verdeel zes spelers per team.
-    for (let i = 0; i < 12; i++) {
-      const teamId =
-        i < 6 ? team1.rows[0].id : team2.rows[0].id;
+    for (let i = 0; i < players.length; i++) {
+      const teamId = i < team1Count
+        ? team1.rows[0].id
+        : team2.rows[0].id;
 
       await client.query(
         `INSERT INTO team_players (team_id, player_id)
@@ -103,11 +116,12 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: "De teams zijn succesvol verdeeld.",
+      team1Players: team1Count,
+      team2Players: team2Count,
     });
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Fout bij teamverdeling:", error);
+    console.error("Teams loten mislukt:", error);
 
     return NextResponse.json(
       { error: "De teams konden niet worden verdeeld." },

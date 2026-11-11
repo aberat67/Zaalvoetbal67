@@ -38,10 +38,13 @@ export async function POST(request: Request) {
       team1Score > 50 ||
       team2Score > 50 ||
       !Array.isArray(stats) ||
-      stats.length !== 12
+      ![12, 13, 14].includes(stats.length)
     ) {
       return NextResponse.json(
-        { error: "Controleer de uitslag en vul alle 12 spelers in." },
+        {
+          error:
+            "Controleer de uitslag. Er moeten 12, 13 of 14 spelers ingevuld zijn.",
+        },
         { status: 400 }
       );
     }
@@ -78,13 +81,20 @@ export async function POST(request: Request) {
       .filter((row) => Number(row.team_number) === 2)
       .map((row) => Number(row.player_id));
 
+    const totalPlayers = teams.rows.length;
+    const correctTeamSizes =
+      (team1Players.length === 6 && team2Players.length === 6) ||
+      (team1Players.length === 7 && team2Players.length === 6) ||
+      (team1Players.length === 7 && team2Players.length === 7);
+
     if (
-      teams.rows.length !== 12 ||
-      team1Players.length !== 6 ||
-      team2Players.length !== 6 ||
-      new Set(teams.rows.map((row) => Number(row.player_id))).size !== 12
+      totalPlayers !== stats.length ||
+      !correctTeamSizes ||
+      new Set(teams.rows.map((row) => Number(row.player_id))).size !== totalPlayers
     ) {
-      throw new Error("Beide teams moeten elk 6 verschillende spelers hebben.");
+      throw new Error(
+        "De teams moeten bestaan uit 6 tegen 6, 7 tegen 6 of 7 tegen 7 spelers."
+      );
     }
 
     let goals1 = 0;
@@ -137,10 +147,12 @@ export async function POST(request: Request) {
     const allPlayers = [...team1Players, ...team2Players];
 
     if (
-      playerStats.size !== 12 ||
+      playerStats.size !== totalPlayers ||
       allPlayers.some((playerId) => !playerStats.has(playerId))
     ) {
-      throw new Error("Alle 12 spelers moeten precies één keer ingevuld zijn.");
+      throw new Error(
+        "Alle ingedeelde spelers moeten precies één keer ingevuld zijn."
+      );
     }
 
     if (goals1 !== team1Score || goals2 !== team2Score) {
@@ -196,7 +208,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "De uitslag en alle 12 spelersstatistieken zijn opgeslagen.",
+      message: `De uitslag en de statistieken van ${totalPlayers} spelers zijn opgeslagen.`,
     });
   } catch (error) {
     if (client) {

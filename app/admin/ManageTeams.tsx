@@ -243,7 +243,7 @@ export default function ManageTeams() {
       <div className="card" style={{ padding: 18 }}>
         <h2 style={{ fontSize: 20, marginBottom: 5, color }}>{title}</h2>
         <p className="muted" style={{ fontSize: 13 }}>
-          {list.length} van de 6 spelers
+          {list.length} spelers
         </p>
 
         {list.length === 0 ? (
@@ -331,14 +331,14 @@ export default function ManageTeams() {
           </div>
 
           <div className="card" style={{ padding: 18, marginTop: 16 }}>
-            <h2 style={{ fontSize: 20, marginBottom: 5 }}>Reservebank</h2>
+            <h2 style={{ fontSize: 20, marginBottom: 5 }}>Niet ingedeeld</h2>
             <p className="muted" style={{ fontSize: 13 }}>
-              {reserves.length} reserves
+              {reserves.length} spelers
             </p>
 
             {reserves.length === 0 ? (
               <p className="muted" style={{ marginTop: 12 }}>
-                Er zijn geen reserves.
+                Alle spelers zijn ingedeeld.
               </p>
             ) : (
               <div

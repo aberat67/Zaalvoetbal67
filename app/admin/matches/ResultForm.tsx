@@ -134,6 +134,9 @@ export default function ResultForm() {
     );
   }
 
+  const team1Players = players.filter((player) => player.team === 1);
+  const team2Players = players.filter((player) => player.team === 2);
+
   const goals1 = stats
     .filter((stat) => stat.teamNumber === 1)
     .reduce((sum, stat) => sum + stat.goals, 0);
@@ -142,14 +145,25 @@ export default function ResultForm() {
     .filter((stat) => stat.teamNumber === 2)
     .reduce((sum, stat) => sum + stat.goals, 0);
 
+  const validPlayerCount =
+    players.length >= 12 &&
+    players.length <= 14 &&
+    stats.length === players.length &&
+    team1Players.length >= 6 &&
+    team1Players.length <= 7 &&
+    team2Players.length >= 6 &&
+    team2Players.length <= 7;
+
   async function saveResult(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!matchId) return;
 
-    if (players.length !== 12 || stats.length !== 12) {
+    if (!validPlayerCount) {
       setError(true);
-      setMessage("Er moeten precies 12 spelers aanwezig zijn.");
+      setMessage(
+        "Deze wedstrijd moet 12, 13 of 14 ingedeelde spelers hebben, verdeeld over twee teams."
+      );
       return;
     }
 
@@ -237,6 +251,14 @@ export default function ResultForm() {
       {matchId && (
         <>
           {loading && <p>Gegevens laden...</p>}
+
+          {!loading && (
+            <p className="muted" style={{ marginTop: 12 }}>
+              {players.length} spelers ingedeeld: Team 1 heeft{" "}
+              {team1Players.length} spelers en Team 2 heeft{" "}
+              {team2Players.length} spelers.
+            </p>
+          )}
 
           <div
             style={{
@@ -344,7 +366,7 @@ export default function ResultForm() {
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={loading || players.length !== 12}
+            disabled={loading || !validPlayerCount}
             style={{ marginTop: 24 }}
           >
             {loading ? "Bezig..." : "Uitslag opslaan"}

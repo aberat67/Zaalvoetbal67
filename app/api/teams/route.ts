@@ -9,6 +9,7 @@ export async function GET() {
     const matchday = await db.query(
       `SELECT id, match_date
        FROM matchdays
+       WHERE match_date >= CURRENT_DATE
        ORDER BY match_date ASC
        LIMIT 1`
     );
@@ -29,7 +30,10 @@ export async function GET() {
        LEFT JOIN team_players tp ON tp.team_id = t.id
        LEFT JOIN players p ON p.id = tp.player_id
        WHERE t.matchday_id = $1
-       ORDER BY t.team_number ASC, p.first_name ASC, p.last_name ASC`,
+       ORDER BY
+         t.team_number ASC,
+         p.first_name ASC,
+         p.last_name ASC`,
       [matchdayId]
     );
 
@@ -38,7 +42,8 @@ export async function GET() {
       players: result.rows
         .filter(
           (row) =>
-            row.team_number === number && row.player_id !== null
+            row.team_number === number &&
+            row.player_id !== null
         )
         .map((row) => ({
           id: row.player_id,

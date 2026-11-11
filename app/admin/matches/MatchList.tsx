@@ -99,6 +99,53 @@ export default function MatchList() {
     }
   }
 
+  async function deleteMatch(match: Match) {
+    const confirmed = window.confirm(
+      `LET OP! Wil je de wedstrijd van ${formatDate(match.match_date)} definitief verwijderen? Alle inschrijvingen, teams, uitslag en statistieken van deze wedstrijddag worden verwijderd.`
+    );
+
+    if (!confirmed) return;
+
+    const secondConfirmation = window.confirm(
+      "Weet je het zeker? Deze actie kan niet ongedaan worden gemaakt."
+    );
+
+    if (!secondConfirmation) return;
+
+    try {
+      setUpdatingId(match.id);
+      setError("");
+
+      const response = await fetch("/api/admin/matches/delete", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          matchdayId: match.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Wedstrijd verwijderen mislukt.");
+      }
+
+      setMatches((currentMatches) =>
+        currentMatches.filter((item) => item.id !== match.id)
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Wedstrijd verwijderen mislukt."
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   function formatDate(date: string) {
     const [year, month, day] = date.split("-");
     return `${day}/${month}/${year}`;
@@ -121,7 +168,7 @@ export default function MatchList() {
         <button
           className="btn btn-secondary"
           onClick={loadMatches}
-          disabled={loading}
+          disabled={loading || updatingId !== null}
         >
           Vernieuwen
         </button>
@@ -174,7 +221,14 @@ export default function MatchList() {
                   : "Inschrijving gesloten"}
               </span>
 
-              <div style={{ marginTop: 12 }}>
+              <div
+                style={{
+                  marginTop: 12,
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
                 <button
                   className={
                     match.registration_open
@@ -189,6 +243,15 @@ export default function MatchList() {
                     : match.registration_open
                       ? "Inschrijving sluiten"
                       : "Inschrijving openen"}
+                </button>
+
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => deleteMatch(match)}
+                  disabled={updatingId !== null}
+                  style={{ color: "#ff7777" }}
+                >
+                  Wedstrijd verwijderen
                 </button>
               </div>
             </div>

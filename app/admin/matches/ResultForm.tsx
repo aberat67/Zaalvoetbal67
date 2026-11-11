@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,6 +16,8 @@ type Player = {
   id: number;
   name: string;
   team: number;
+  goals: number;
+  assists: number;
 };
 
 type PlayerStat = {
@@ -61,12 +64,15 @@ export default function ResultForm() {
     if (!matchId) {
       setPlayers([]);
       setStats([]);
+      setTeam1Score("0");
+      setTeam2Score("0");
       return;
     }
 
     async function loadPlayers() {
       setLoading(true);
       setMessage("");
+      setError(false);
 
       try {
         const response = await fetch(
@@ -79,20 +85,31 @@ export default function ResultForm() {
           throw new Error(data.error || "Spelers laden mislukt.");
         }
 
-        setPlayers(data.players || []);
+        const loadedPlayers: Player[] = data.players || [];
+
+        setPlayers(loadedPlayers);
         setStats(
-          (data.players || []).map((player: Player) => ({
+          loadedPlayers.map((player) => ({
             playerId: player.id,
             teamNumber: player.team,
-            goals: 0,
-            assists: 0,
+            goals: player.goals ?? 0,
+            assists: player.assists ?? 0,
           }))
         );
-        setTeam1Score("0");
-        setTeam2Score("0");
-      } catch {
+
+        setTeam1Score(
+          data.result ? String(data.result.team1Score) : "0"
+        );
+        setTeam2Score(
+          data.result ? String(data.result.team2Score) : "0"
+        );
+      } catch (err) {
         setError(true);
-        setMessage("Spelers konden niet worden geladen.");
+        setMessage(
+          err instanceof Error
+            ? err.message
+            : "Spelers konden niet worden geladen."
+        );
       } finally {
         setLoading(false);
       }
@@ -130,6 +147,12 @@ export default function ResultForm() {
 
     if (!matchId) return;
 
+    if (players.length !== 12 || stats.length !== 12) {
+      setError(true);
+      setMessage("Er moeten precies 12 spelers aanwezig zijn.");
+      return;
+    }
+
     if (
       Number(team1Score) !== goals1 ||
       Number(team2Score) !== goals2
@@ -164,6 +187,19 @@ export default function ResultForm() {
       }
 
       setMessage("Uitslag en spelersstatistieken opgeslagen!");
+
+      setMatches((current) =>
+        current.map((match) =>
+          match.id === Number(matchId)
+            ? {
+                ...match,
+                team1_score: Number(team1Score),
+                team2_score: Number(team2Score),
+                played_at: new Date().toISOString(),
+              }
+            : match
+        )
+      );
     } catch (err) {
       setError(true);
       setMessage(
@@ -190,7 +226,9 @@ export default function ResultForm() {
           <option value="">Kies een wedstrijd</option>
           {matches.map((match) => (
             <option key={match.id} value={match.id}>
-              {match.match_date} {match.location ? `- ${match.location}` : ""}
+              {match.match_date}
+              {match.location ? ` - ${match.location}` : ""}
+              {match.played_at ? " (uitslag ingevoerd)" : ""}
             </option>
           ))}
         </select>
@@ -198,6 +236,8 @@ export default function ResultForm() {
 
       {matchId && (
         <>
+          {loading && <p>Gegevens laden...</p>}
+
           <div
             style={{
               display: "grid",
@@ -242,8 +282,6 @@ export default function ResultForm() {
           <h3 style={{ marginTop: 28, marginBottom: 14 }}>
             Doelpunten en assists
           </h3>
-
-          {loading && <p>Spelers laden...</p>}
 
           {[1, 2].map((teamNumber) => (
             <div key={teamNumber} style={{ marginTop: 20 }}>

@@ -7,10 +7,13 @@ export default function DrawTeamsButton() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
+  const [numberOfPlayers, setNumberOfPlayers] = useState("12");
 
   async function drawTeams() {
+    const count = Number(numberOfPlayers);
+
     const confirmed = window.confirm(
-      "Weet je zeker dat je de teams opnieuw wilt loten? De huidige teamindeling wordt vervangen."
+      `Weet je zeker dat je ${count} spelers opnieuw wilt loten? De huidige teamindeling wordt vervangen.`
     );
 
     if (!confirmed) return;
@@ -22,6 +25,12 @@ export default function DrawTeamsButton() {
     try {
       const response = await fetch("/api/admin/teams/draw", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          numberOfPlayers: count,
+        }),
       });
 
       const data = await response.json();
@@ -30,7 +39,9 @@ export default function DrawTeamsButton() {
         throw new Error(data.error || "De loting is mislukt.");
       }
 
-      setMessage("De teams zijn succesvol geloot! ⚽");
+      setMessage(
+        `Gelukt! Team 1 heeft ${data.team1Players} spelers en Team 2 heeft ${data.team2Players} spelers. ⚽`
+      );
     } catch (err) {
       setError(true);
       setMessage(
@@ -45,6 +56,29 @@ export default function DrawTeamsButton() {
 
   return (
     <div style={{ marginTop: 18 }}>
+      <label htmlFor="numberOfPlayers">
+        Hoeveel spelers spelen deze wedstrijd?
+      </label>
+
+      <select
+        id="numberOfPlayers"
+        value={numberOfPlayers}
+        onChange={(event) => setNumberOfPlayers(event.target.value)}
+        disabled={loading}
+        style={{
+          display: "block",
+          width: "100%",
+          marginTop: 8,
+          marginBottom: 16,
+          padding: 12,
+          borderRadius: 8,
+        }}
+      >
+        <option value="12">12 spelers (6 tegen 6)</option>
+        <option value="13">13 spelers (7 tegen 6)</option>
+        <option value="14">14 spelers (7 tegen 7)</option>
+      </select>
+
       <button
         className="btn btn-primary"
         onClick={drawTeams}

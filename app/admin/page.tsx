@@ -99,7 +99,7 @@ export default async function AdminPage() {
           </a>
 
           <a
-  href="/admin/stats"
+  href="/statistieken"
   className="card"
   style={{
     display: "block",

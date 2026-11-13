@@ -3,8 +3,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySessionToken } from "@/lib/auth";
 
-
-
 export default async function AdminPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("zaalvoetbal_admin")?.value;
@@ -38,10 +36,24 @@ export default async function AdminPage() {
         </p>
 
         <div className="grid" style={{ marginTop: 30 }}>
-          <div className="card">
-            <h2>Spelers</h2>
-            <p className="muted">Spelers beheren en aanpassen.</p>
-          </div>
+          <a
+            href="/admin/players"
+            className="card"
+            style={{
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            <h2>👥 Spelers beheren</h2>
+            <p className="muted" style={{ marginTop: 8 }}>
+              Alle spelers bekijken, toevoegen, aanpassen en verwijderen.
+            </p>
+            <p style={{ marginTop: 14, color: "#75d99a" }}>
+              Open spelersbeheer →
+            </p>
+          </a>
 
           <div className="card">
             <h2>Inschrijvingen</h2>
@@ -49,43 +61,42 @@ export default async function AdminPage() {
           </div>
 
           <a
-  href="/admin/teams"
-  className="card"
-  style={{
-    display: "block",
-    textDecoration: "none",
-    color: "inherit",
-    cursor: "pointer",
-  }}
->
-  <h2>⚽ Teams beheren</h2>
-  <p className="muted" style={{ marginTop: 8 }}>
-    Teams loten, spelers verplaatsen en de reservebank beheren.
-  </p>
-  <p style={{ marginTop: 14, color: "#75d99a" }}>
-    Open teambeheer →
-  </p>
-</a>
-    
+            href="/admin/teams"
+            className="card"
+            style={{
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            <h2>⚽ Teams beheren</h2>
+            <p className="muted" style={{ marginTop: 8 }}>
+              Teams loten, spelers verplaatsen en de reservebank beheren.
+            </p>
+            <p style={{ marginTop: 14, color: "#75d99a" }}>
+              Open teambeheer →
+            </p>
+          </a>
 
           <a
-  href="/admin/matches"
-  className="card"
-  style={{
-    display: "block",
-    textDecoration: "none",
-    color: "inherit",
-    cursor: "pointer",
-  }}
->
-  <h2>⚽ Wedstrijden beheren</h2>
-  <p className="muted" style={{ marginTop: 8 }}>
-    Wedstrijden aanmaken, uitslagen invoeren en doelpunten registreren.
-  </p>
-  <p style={{ marginTop: 14, color: "#75d99a" }}>
-    Open wedstrijdbeheer →
-  </p>
-</a>
+            href="/admin/matches"
+            className="card"
+            style={{
+              display: "block",
+              textDecoration: "none",
+              color: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            <h2>⚽ Wedstrijden beheren</h2>
+            <p className="muted" style={{ marginTop: 8 }}>
+              Wedstrijden aanmaken, uitslagen invoeren en doelpunten registreren.
+            </p>
+            <p style={{ marginTop: 14, color: "#75d99a" }}>
+              Open wedstrijdbeheer →
+            </p>
+          </a>
 
           <div className="card">
             <h2>Statistieken</h2>

@@ -18,6 +18,9 @@ export default function PlayersManager() {
   const [search, setSearch] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -91,9 +94,49 @@ export default function PlayersManager() {
     }
   }
 
+  function startEditing(player: Player) {
+    setEditingId(player.id);
+    setEditFirstName(player.first_name);
+    setEditLastName(player.last_name);
+    setMessage("");
+    setError("");
+  }
+
+  async function savePlayer(playerId: number) {
+    setSaving(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/players", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId,
+          firstName: editFirstName,
+          lastName: editLastName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Speler kon niet worden aangepast.");
+      }
+
+      setEditingId(null);
+      setMessage("Spelersnaam succesvol aangepast.");
+      await loadPlayers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Er ging iets mis.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function deletePlayer(player: Player) {
     const confirmed = window.confirm(
-      `Weet je zeker dat je ${player.first_name} ${player.last_name} wilt verwijderen?`
+      `Weet je zeker dat je ${player.first_name} ${player.last_name} wilt verwijderen? Alle persoonlijke statistieken en inschrijvingen worden ook verwijderd.`
     );
 
     if (!confirmed) return;
@@ -217,31 +260,94 @@ export default function PlayersManager() {
               <div
                 key={player.id}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                  flexWrap: "wrap",
                   padding: "14px 0",
                   borderBottom: "1px solid rgba(255,255,255,0.1)",
                 }}
               >
-                <div>
-                  <strong>
-                    {player.first_name} {player.last_name}
-                  </strong>
-                  <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>
-                    {player.registrations} inschrijvingen · {player.matches}{" "}
-                    geregistreerde wedstrijden
-                  </p>
-                </div>
+                {editingId === player.id ? (
+                  <div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(150px, 1fr))",
+                        gap: 10,
+                      }}
+                    >
+                      <input
+                        className="input"
+                        value={editFirstName}
+                        onChange={(event) =>
+                          setEditFirstName(event.target.value)
+                        }
+                        placeholder="Voornaam"
+                      />
 
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => deletePlayer(player)}
-                >
-                  Verwijderen
-                </button>
+                      <input
+                        className="input"
+                        value={editLastName}
+                        onChange={(event) =>
+                          setEditLastName(event.target.value)
+                        }
+                        placeholder="Achternaam"
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                      <button
+                        className="btn"
+                        onClick={() => savePlayer(player.id)}
+                        disabled={saving}
+                      >
+                        {saving ? "Bezig..." : "Opslaan"}
+                      </button>
+
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => setEditingId(null)}
+                        disabled={saving}
+                      >
+                        Annuleren
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <strong>
+                        {player.first_name} {player.last_name}
+                      </strong>
+                      <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+                        {player.registrations} inschrijvingen · {player.matches}{" "}
+                        geregistreerde wedstrijden
+                      </p>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => startEditing(player)}
+                      >
+                        Naam wijzigen
+                      </button>
+
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => deletePlayer(player)}
+                      >
+                        Verwijderen
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

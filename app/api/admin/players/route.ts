@@ -103,6 +103,81 @@ export async function POST(request: Request) {
   }
 }
 
+
+export async function PATCH(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json(
+      { error: "Je moet ingelogd zijn als beheerder." },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const playerId = Number(body.playerId);
+    const firstName = String(body.firstName || "").trim();
+    const lastName = String(body.lastName || "").trim();
+
+    if (
+      !Number.isInteger(playerId) ||
+      playerId <= 0 ||
+      !firstName ||
+      !lastName
+    ) {
+      return NextResponse.json(
+        { error: "Vul een geldige speler, voornaam en achternaam in." },
+        { status: 400 }
+      );
+    }
+
+    const existing = await db.query(
+      `SELECT id FROM players
+       WHERE LOWER(first_name) = LOWER($1)
+       AND LOWER(last_name) = LOWER($2)
+       AND id <> $3
+       LIMIT 1`,
+      [firstName, lastName, playerId]
+    );
+
+    if (existing.rows.length > 0) {
+      return NextResponse.json(
+        { error: "Een andere speler heeft deze naam al." },
+        { status: 409 }
+      );
+    }
+
+    const result = await db.query(
+      `UPDATE players
+       SET first_name = $1,
+           last_name = $2,
+           name = $3
+       WHERE id = $4
+       RETURNING id, first_name, last_name, name, created_at`,
+      [firstName, lastName, `${firstName} ${lastName}`, playerId]
+    );
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { error: "Speler niet gevonden." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      player: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Speler aanpassen mislukt:", error);
+
+    return NextResponse.json(
+      { error: "De speler kon niet worden aangepast." },
+      { status: 500 }
+    );
+  }
+}
+
+
 export async function DELETE(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json(

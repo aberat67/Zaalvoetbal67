@@ -139,32 +139,25 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const stats = await client.query(
-      "SELECT COUNT(*)::int AS total FROM player_match_stats WHERE player_id = $1",
+    // Verwijder eerst alle persoonlijke wedstrijdstatistieken.
+    await client.query(
+      "DELETE FROM player_match_stats WHERE player_id = $1",
       [playerId]
     );
 
-    if (stats.rows[0].total > 0) {
-      await client.query("ROLLBACK");
-      return NextResponse.json(
-        {
-          error:
-            "Deze speler heeft wedstrijdstatistieken. Verwijderen is geblokkeerd om de historische statistieken te bewaren.",
-        },
-        { status: 409 }
-      );
-    }
-
+    // Verwijder de teamindelingen van deze speler.
     await client.query(
       "DELETE FROM team_players WHERE player_id = $1",
       [playerId]
     );
 
+    // Verwijder alle inschrijvingen van deze speler.
     await client.query(
       "DELETE FROM registrations WHERE player_id = $1",
       [playerId]
     );
 
+    // Verwijder tot slot de speler zelf.
     await client.query(
       "DELETE FROM players WHERE id = $1",
       [playerId]
@@ -174,7 +167,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Speler verwijderd.",
+      message: "Speler en alle bijbehorende gegevens zijn verwijderd.",
     });
   } catch (error) {
     await client.query("ROLLBACK");

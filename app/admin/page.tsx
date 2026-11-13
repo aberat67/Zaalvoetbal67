@@ -98,10 +98,24 @@ export default async function AdminPage() {
             </p>
           </a>
 
-          <div className="card">
-            <h2>Statistieken</h2>
-            <p className="muted">Doelpunten, assists en overwinningen.</p>
-          </div>
+          <a
+  href="/admin/stats"
+  className="card"
+  style={{
+    display: "block",
+    textDecoration: "none",
+    color: "inherit",
+    cursor: "pointer",
+  }}
+>
+  <h2>📊 Statistieken</h2>
+  <p className="muted" style={{ marginTop: 8 }}>
+    Bekijk topscorers, overwinningen en persoonlijke statistieken.
+  </p>
+  <p style={{ marginTop: 14, color: "#75d99a" }}>
+    Open statistieken →
+  </p>
+</a>
         </div>
       </section>
     </main>

@@ -9,6 +9,12 @@ type Player = {
   lastName: string;
 };
 
+type Match = {
+  date: string;
+  location: string | null;
+  registrationOpen: boolean;
+};
+
 export default function InschrijvenPage() {
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [players, setPlayers] = useState<Player[]>([]);
@@ -19,6 +25,8 @@ export default function InschrijvenPage() {
   const [cancellationUrl, setCancellationUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(true);
+  const [match, setMatch] = useState<Match | null>(null);
+  const [loadingMatch, setLoadingMatch] = useState(true);
 
   useEffect(() => {
     async function loadPlayers() {
@@ -39,13 +47,51 @@ export default function InschrijvenPage() {
       }
     }
 
+    async function loadMatch() {
+      try {
+        const response = await fetch("/api/next-match");
+        const data = await response.json();
+
+        if (response.ok) {
+          setMatch(data.match || null);
+        }
+      } catch (error) {
+        console.error("Wedstrijd ophalen mislukt:", error);
+      } finally {
+        setLoadingMatch(false);
+      }
+    }
+
     loadPlayers();
+    loadMatch();
   }, []);
+
+  const formattedDate = match?.date
+    ? new Date(`${match.date.slice(0, 10)}T12:00:00`).toLocaleDateString(
+        "nl-BE",
+        {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }
+      )
+    : null;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
     setCancellationUrl("");
+
+    if (!match) {
+      setMessage("Er staat momenteel geen wedstrijd gepland.");
+      return;
+    }
+
+    if (!match.registrationOpen) {
+      setMessage("De inschrijvingen voor deze wedstrijd zijn gesloten.");
+      return;
+    }
 
     if (mode === "existing" && !playerId) {
       setMessage("Selecteer eerst je naam.");
@@ -131,6 +177,42 @@ export default function InschrijvenPage() {
         <h1 style={{ fontSize: 38, fontWeight: 900, marginTop: 18 }}>
           Schrijf je in!
         </h1>
+
+        <div
+          className="card"
+          style={{ marginTop: 18, marginBottom: 24 }}
+        >
+          <p className="muted" style={{ fontWeight: 700 }}>
+            Je schrijft je in voor de volgende speeldag:
+          </p>
+
+          {loadingMatch ? (
+            <p style={{ marginTop: 8 }}>Wedstrijddatum laden...</p>
+          ) : formattedDate ? (
+            <>
+              <h2
+                className="accent"
+                style={{ fontSize: 24, marginTop: 8, textTransform: "capitalize" }}
+              >
+                {formattedDate}
+              </h2>
+              {match?.location && (
+                <p className="muted" style={{ marginTop: 6 }}>
+                  {match.location}
+                </p>
+              )}
+              {!match?.registrationOpen && (
+                <p style={{ marginTop: 10, fontWeight: 700 }}>
+                  De inschrijvingen voor deze wedstrijd zijn gesloten.
+                </p>
+              )}
+            </>
+          ) : (
+            <p style={{ marginTop: 8, fontWeight: 700 }}>
+              Er staat momenteel nog geen volgende speeldag gepland.
+            </p>
+          )}
+        </div>
 
         <p className="muted" style={{ marginTop: 10, marginBottom: 28 }}>
           De eerste 12 spelers krijgen een basisplaats.
@@ -228,10 +310,18 @@ export default function InschrijvenPage() {
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={loading || loadingPlayers}
+            disabled={
+              loading ||
+              loadingPlayers ||
+              loadingMatch ||
+              !match ||
+              !match.registrationOpen
+            }
             style={{ width: "100%" }}
           >
-            {loading ? "Bezig met inschrijven..." : "Bevestig inschrijving"}
+            {loading
+              ? "Bezig met inschrijven..."
+              : "Bevestig inschrijving"}
           </button>
 
           {message && (

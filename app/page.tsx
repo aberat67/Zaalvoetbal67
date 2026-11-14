@@ -163,28 +163,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="inschrijven" className="container section">
-        <h2 className="section-title">Inschrijven</h2>
-
-        <div className="card">
-          <h3 style={{ fontSize: 22 }}>Speel mee!</h3>
-
-          <p className="muted" style={{ marginTop: 10 }}>
-            Schrijf je in voor de volgende zaalvoetbalwedstrijd.
-            De eerste 12 spelers krijgen een basisplaats.
-            Daarna kom je op de reservelijst.
-          </p>
-
-          <a
-            href="/inschrijven"
-            className="btn btn-primary"
-            style={{ marginTop: 20 }}
-          >
-            Naar inschrijvingen →
-          </a>
-        </div>
-      </section>
-
       <section id="teams" className="container section">
         <h2 className="section-title">De teams</h2>
 
